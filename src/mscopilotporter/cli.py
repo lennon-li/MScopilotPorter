@@ -94,6 +94,14 @@ def cmd_doctor(args) -> int:
     good &= _check(sys.version_info >= (3, 11), "Python >= 3.11", sys.version.split()[0])
     good &= _check(shutil.which("bwrap") is not None, "bubblewrap (bwrap) installed", "sudo apt install bubblewrap")
     good &= _check(shutil.which("git") is not None, "git installed")
+    good &= _check(shutil.which("rg") is not None, "ripgrep (rg) installed", "sudo apt install ripgrep (used by search_text)")
+    try:
+        sandbox_ok = shutil.which("bwrap") is not None and subprocess.run(
+            ["bwrap", "--unshare-net", "--ro-bind", "/", "/", "true"], capture_output=True, timeout=10
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        sandbox_ok = False
+    good &= _check(sandbox_ok, "bubblewrap can create a sandbox", "see Troubleshooting in SETUP.md")
     cfg_file = paths.config_file()
     good &= _check(cfg_file.exists(), "config file exists", str(cfg_file))
     config = {}

@@ -11,7 +11,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - run: sudo apt-get update && sudo apt-get install -y bubblewrap ripgrep
+      # Ubuntu 24.04 runners restrict unprivileged user namespaces; bubblewrap needs them.
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: pip install -e '.[dev]'
       - run: python scripts/leak_check.py
       - run: pytest -q

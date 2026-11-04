@@ -3,7 +3,7 @@ import json
 import httpx
 import logging
 from typing import Optional
-from mscopilotporter.tools.workspace import get_workspace
+from mscopilotporter.tools.workspace import get_workspace, require_flag
 from mscopilotporter.runner.sandbox import run_in_sandbox
 from mscopilotporter.runner.jobs import job_manager
 
@@ -12,6 +12,7 @@ logger = logging.getLogger("mscopilotporter.tools_exec")
 def exec_run(workspace_id: str, argv: list[str], cwd: str = "", timeout_seconds: int = 30, network_access: bool = False) -> dict:
     """Execute command in bubblewrap; network access is opt-in per command."""
     ws = get_workspace(workspace_id)
+    require_flag(ws, "allow_execute")
     return run_in_sandbox(
         workspace_path=ws["path"],
         argv=argv,
@@ -24,6 +25,7 @@ def exec_run(workspace_id: str, argv: list[str], cwd: str = "", timeout_seconds:
 def exec_start(workspace_id: str, argv: list[str], cwd: str = "", timeout_seconds: int = 300, network_access: bool = False) -> dict:
     """Start command asynchronously inside bubblewrap sandbox and return job ID."""
     ws = get_workspace(workspace_id)
+    require_flag(ws, "allow_execute")
     job_id = job_manager.start_sandbox_job(
         workspace_id=workspace_id,
         workspace_path=ws["path"],

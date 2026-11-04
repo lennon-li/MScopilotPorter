@@ -2,7 +2,7 @@ import os
 import base64
 import mimetypes
 import logging
-from mscopilotporter.tools.workspace import get_workspace, validate_workspace_path
+from mscopilotporter.tools.workspace import get_workspace, require_flag, validate_workspace_path
 
 logger = logging.getLogger("mscopilotporter.tools_artifacts")
 
@@ -11,6 +11,7 @@ IMAGE_EXTENSIONS = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/j
 def list_artifacts(workspace_id: str, path: str = "artifacts") -> list[dict]:
     """List artifacts located in the specified workspace directory."""
     ws = get_workspace(workspace_id)
+    require_flag(ws, "allow_artifacts")
     try:
         artifact_dir = validate_workspace_path(workspace_id, path)
     except Exception:
@@ -37,6 +38,7 @@ def list_artifacts(workspace_id: str, path: str = "artifacts") -> list[dict]:
 
 def read_artifact(workspace_id: str, path: str) -> dict:
     """Read an artifact file, returning text content or base64 encoded data for images."""
+    require_flag(get_workspace(workspace_id), "allow_artifacts")
     full_path = validate_workspace_path(workspace_id, path)
     if not os.path.isfile(full_path):
         raise FileNotFoundError(f"Artifact not found: '{path}'")

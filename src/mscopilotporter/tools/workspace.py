@@ -50,7 +50,9 @@ def _auto_discovered_workspaces(workspaces: dict) -> dict:
                     continue
                 discovered[entry.name] = {
                     "path": path,
-                    "writable": info.get("writable", True),
+                    "writable": info.get("writable", False),
+                    "allow_execute": info.get("allow_execute", False),
+                    "allow_artifacts": info.get("allow_artifacts", False),
                     "description": f"Auto-discovered project in {parent_id}",
                 }
     return discovered
@@ -66,9 +68,17 @@ def get_workspace(workspace_id: str) -> dict:
     return {
         "id": workspace_id,
         "path": ws_path,
-        "writable": ws.get("writable", True),
+        "writable": ws.get("writable", False),
+        "allow_execute": ws.get("allow_execute", False),
+        "allow_artifacts": ws.get("allow_artifacts", False),
         "description": ws.get("description", "")
     }
+
+
+def require_flag(ws: dict, flag: str) -> None:
+    """Capabilities are off unless the workspace opts in (secure by default)."""
+    if not ws.get(flag, False):
+        raise PermissionError(f"Workspace '{ws['id']}' does not enable {flag}; set `{flag}: true` in the config to allow it.")
 
 def validate_workspace_path(workspace_id: str, rel_path: str, allow_root: bool = False) -> str:
     """Validate that rel_path is strictly project-relative and resolves within workspace root."""
@@ -130,7 +140,9 @@ def list_workspaces() -> list[dict]:
             "workspace_id": ws_id,
             "path": real_path,
             "exists": os.path.isdir(real_path),
-            "writable": info.get("writable", True),
+            "writable": info.get("writable", False),
+            "allow_execute": info.get("allow_execute", False),
+            "allow_artifacts": info.get("allow_artifacts", False),
             "description": info.get("description", "")
         })
     return result
@@ -204,6 +216,8 @@ def workspace_info(workspace_id: str) -> dict:
         "workspace_id": workspace_id,
         "path": ws_path,
         "writable": ws["writable"],
+        "allow_execute": ws["allow_execute"],
+        "allow_artifacts": ws["allow_artifacts"],
         "git": {
             "is_repo": os.path.exists(git_dir),
             "branch": git_branch,

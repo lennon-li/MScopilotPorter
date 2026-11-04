@@ -34,7 +34,7 @@ def test_strict_dispatch_preserves_account_default_and_workspace(monkeypatch, tm
     strict = _fake_info(tmp_path, "strict")
     strict.update(default_model="unknown", reasoning_effort="unknown")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"strict": strict})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     captured = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kw: captured.append(kw) or "strict-job")
     result = agent_broker.dispatch_agent("strict", "Scoped research", "research")

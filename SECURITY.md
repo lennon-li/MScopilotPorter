@@ -14,7 +14,7 @@ as remote code execution that you have chosen to allow, and scope it accordingly
   paths are refused.
 - **Sandbox:** commands run in bubblewrap with a synthetic environment, a synthetic
   `/etc/passwd`, no network unless a call opts in, and secrets stripped from the
-  environment. Execution also needs `allow_execute: true` on the workspace.
+  environment. Execution (including `dispatch_agent`) also needs `allow_execute: true` on the workspace; artifacts need `allow_artifacts: true`.
 - **Writes:** workspaces are read-only unless `writable: true`.
 
 ## What the sandbox does not cover

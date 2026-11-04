@@ -10,7 +10,8 @@ server:
 tunnel:
   name: ""                   # a tunnel you created with `devtunnel create`
 
-# Only workspaces listed here are visible to Copilot.
+# Only workspaces listed here are visible to Copilot. Everything is OFF by default:
+# read-only, no command execution, no artifact access, until you opt in per workspace.
 workspaces:
   example:
     path: ~/projects/example

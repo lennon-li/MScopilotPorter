@@ -17,7 +17,7 @@ def test_agy_defaults_do_not_invent_a_model():
 def test_agy_discovery_and_dispatch(monkeypatch, tmp_path):
     surveyor = _fake_info(tmp_path, "surveyor", "agy")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"surveyor": surveyor})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     calls = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kw: calls.append(kw) or "surveyor-job")
     assert agent_broker.list_agents()[0]["agent"] == "surveyor"
@@ -31,7 +31,7 @@ def test_agy_discovery_and_dispatch(monkeypatch, tmp_path):
 @pytest.mark.parametrize("override", [{"model": "unverified-model"}, {"reasoning_effort": "high"}])
 def test_agy_does_not_silently_ignore_overrides(monkeypatch, tmp_path, override):
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"surveyor": _fake_info(tmp_path, "surveyor", "agy")})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     calls = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kw: calls.append(kw))
     agent_broker.dispatch_agent("surveyor", "Survey", "test", **override)

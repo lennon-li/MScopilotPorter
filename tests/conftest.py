@@ -7,6 +7,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import pytest
+
 _root = Path(tempfile.mkdtemp(prefix="mscp-tests-"))
 _ws = _root / "poc"
 os.environ["MSCP_CONFIG_DIR"] = str(_root / "config")
@@ -55,3 +57,15 @@ subprocess.run(
     _git + ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", "initial mixed R/Python"],
     check=True,
 )
+
+
+def _bwrap_usable() -> bool:
+    try:
+        return subprocess.run(
+            ["bwrap", "--unshare-net", "--ro-bind", "/", "/", "true"], capture_output=True, timeout=10
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+needs_bwrap = pytest.mark.skipif(not _bwrap_usable(), reason="bubblewrap cannot create sandboxes here")

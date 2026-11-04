@@ -1,5 +1,6 @@
 import os
 import pytest
+from conftest import needs_bwrap
 from mscopilotporter.tools.workspace import get_workspace, validate_workspace_path
 from mscopilotporter.tools.files import read_file
 from mscopilotporter.auth import verify_api_key, is_host_allowed, API_KEY
@@ -43,6 +44,7 @@ def test_unknown_agent_blocked():
     with pytest.raises(ValueError, match="Unknown agent"):
         dispatch_agent("evil-agent-binary", "do harm", WORKSPACE_ID)
 
+@needs_bwrap
 def test_sandbox_python_ssh_blocked():
     ws = get_workspace(WORKSPACE_ID)
     res = run_in_sandbox(
@@ -60,6 +62,7 @@ def test_sandbox_python_ssh_blocked():
     assert res_open["exit_code"] != 0
     assert "No such file or directory" in res_open["stderr"]
 
+@needs_bwrap
 def test_sandbox_r_ssh_blocked():
     ws = get_workspace(WORKSPACE_ID)
     res = run_in_sandbox(
@@ -69,6 +72,7 @@ def test_sandbox_r_ssh_blocked():
     assert res["exit_code"] == 0
     assert "FALSE" in res["stdout"]
 
+@needs_bwrap
 def test_sandbox_mnt_c_blocked():
     ws = get_workspace(WORKSPACE_ID)
     res_py = run_in_sandbox(
@@ -85,6 +89,7 @@ def test_sandbox_mnt_c_blocked():
     assert res_r["exit_code"] == 0
     assert "FALSE" in res_r["stdout"]
 
+@needs_bwrap
 def test_sandbox_docker_socket_blocked():
     ws = get_workspace(WORKSPACE_ID)
     res = run_in_sandbox(
@@ -94,6 +99,7 @@ def test_sandbox_docker_socket_blocked():
     assert res["exit_code"] == 0
     assert res["stdout"].strip() == "False"
 
+@needs_bwrap
 def test_sandbox_network_blocked():
     ws = get_workspace(WORKSPACE_ID)
     res = run_in_sandbox(
@@ -103,6 +109,7 @@ def test_sandbox_network_blocked():
     assert res["exit_code"] != 0
     assert "Network is unreachable" in res["stderr"] or "URLError" in res["stderr"]
 
+@needs_bwrap
 def test_sandbox_background_process_does_not_block_exit():
     # gh/git can fork daemons (dbus, credential cache); they must not hold the run open.
     ws = get_workspace(WORKSPACE_ID)
@@ -115,6 +122,7 @@ def test_sandbox_background_process_does_not_block_exit():
     assert "started" in res["stdout"]
     assert res["duration"] < 5
 
+@needs_bwrap
 def test_sandbox_environment_clean():
     ws = get_workspace(WORKSPACE_ID)
     res = run_in_sandbox(

@@ -52,7 +52,7 @@ def test_distinct_profiles_and_legacy_aliases(monkeypatch, tmp_path):
     delta = _fake_info(tmp_path, "delta", "opencode")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"alpha": alpha, "beta": beta, "gamma": gamma, "delta": delta})
     monkeypatch.setattr(agent_broker, "AGENT_ALIASES", {"codex": "alpha", "opencode": "delta"})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     captured = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kwargs: captured.append(kwargs) or f"job_{len(captured)}")
 
@@ -73,7 +73,7 @@ def test_distinct_profiles_and_legacy_aliases(monkeypatch, tmp_path):
 def test_codex_network_requires_explicit_opt_in_and_keeps_host_allowlist(monkeypatch, tmp_path):
     codex = _fake_info(tmp_path, "beta")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"beta": codex})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     captured = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kwargs: captured.append(kwargs) or f"job_{len(captured)}")
 
@@ -93,13 +93,13 @@ def test_codex_network_requires_explicit_opt_in_and_keeps_host_allowlist(monkeyp
 def test_network_request_rejected_for_unsupported_or_read_only_worker(monkeypatch, tmp_path):
     gamma = _fake_info(tmp_path, "gamma", "copilot")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"gamma": gamma})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     with pytest.raises(ValueError, match="not supported for copilot"):
         agent_broker.dispatch_agent("gamma", "read GitHub", "repos", network_access=True)
 
     beta = _fake_info(tmp_path, "beta")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"beta": beta})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False, "allow_execute": True})
     with pytest.raises(ValueError, match="read-only Codex"):
         agent_broker.dispatch_agent("beta", "read GitHub", "repos", network_access=True)
 
@@ -107,7 +107,7 @@ def test_network_request_rejected_for_unsupported_or_read_only_worker(monkeypatc
 def test_codex_read_only_dispatch_is_explicitly_offline(monkeypatch, tmp_path):
     beta = _fake_info(tmp_path, "beta")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"beta": beta})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False, "allow_execute": True})
     captured = {}
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kwargs: captured.update(kwargs) or "job_ro")
 
@@ -141,7 +141,7 @@ def test_unknown_and_forbidden_agents_are_rejected(monkeypatch, agent):
 def test_gamma_env_and_permissions_are_profile_bound(monkeypatch, tmp_path):
     gamma = _fake_info(tmp_path, "gamma", "copilot")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"gamma": gamma})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     monkeypatch.setenv("COPILOT_HOME", "/wrong/profile")
     monkeypatch.setenv("COPILOT_REAL_BIN", "/wrong/copilot")
     monkeypatch.setenv("COPILOT_ALLOW_ALL", "true")
@@ -165,7 +165,7 @@ def test_gamma_env_and_permissions_are_profile_bound(monkeypatch, tmp_path):
 def test_gamma_read_only_dispatch_cannot_write(monkeypatch, tmp_path):
     gamma = _fake_info(tmp_path, "gamma", "copilot")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"gamma": gamma})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False, "allow_execute": True})
     captured = {}
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kwargs: captured.update(kwargs) or "job_ro")
 

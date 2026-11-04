@@ -5,7 +5,7 @@ Connect a Microsoft 365 Copilot Studio agent to a local machine through an MCP e
 ## What you need
 
 - Linux or WSL2 (Ubuntu 22.04+), Python 3.11+
-- `bubblewrap` (`sudo apt install bubblewrap`) and `git`
+- `bubblewrap`, `git` and `ripgrep` (`sudo apt install bubblewrap git ripgrep python3-venv`)
 - A Microsoft 365 account with Copilot Studio access
 - A tunnel to expose the local port over HTTPS: Microsoft Dev Tunnels (`devtunnel` CLI) or
   any HTTPS reverse proxy you control
@@ -39,9 +39,13 @@ server:
 workspaces:
   myproject:
     path: ~/projects/myproject
-    writable: false          # set true only when you want Copilot to edit
-    allow_execute: false     # set true to allow sandboxed commands
+    writable: false          # default false; true lets Copilot edit files
+    allow_execute: false     # default false; true allows sandboxed commands and CLI workers
+    allow_artifacts: false   # default false; true allows listing/reading artifacts
 ```
+
+Everything is off by default. Start read-only and enable capabilities one at a time.
+`doctor` reads this file, so edit it first.
 
 ## 4. Check the machine
 
@@ -122,3 +126,25 @@ authorise the connection under Channels, then Microsoft 365 Copilot, then User c
 - Writable workspaces and delegated CLI agents run with your own credentials. Grant
   them only to projects you trust Copilot to modify.
 - Treat the API key like a password. Rotate it if it is ever shared or logged.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `401 Unauthorized` | Missing or wrong key. Header must be `X-MSCP-Key`; get the value with `mscopilotporter key show`. |
+| `403 Host header not allowed` | Add your tunnel hostname to `server.allowed_hosts` and restart. |
+| `429 Too Many Requests` | Rate limit is 120 requests per minute per client. Wait and retry. |
+| `PermissionError ... allow_execute` (or `allow_artifacts`) | The workspace has not opted in. Set the flag to `true` in the config and restart. |
+| `bwrap: loopback: Failed RTM_NEWADDR` or `Operation not permitted` | Unprivileged user namespaces are restricted (common on Ubuntu 24.04). Run `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or install an AppArmor profile for `bwrap`. `doctor` reports this. |
+| `search_text` returns nothing or errors | Install ripgrep: `sudo apt install ripgrep`. |
+| Tunnel URL works but Copilot Studio cannot connect | Check the tunnel is hosted (`devtunnel host`), the gateway is running, and the Server URL matches exactly. Test with the `curl` commands in step 6. |
+| Copilot desktop app says "Not Found" | Authorise the connection: Channels, Microsoft 365 Copilot, User connections. |
+| Only one machine can host a tunnel | Starting `devtunnel host` on a second machine disconnects the first. |
+
+## Uninstall
+
+```bash
+systemctl --user disable --now mscopilotporter 2>/dev/null
+rm -f ~/.config/systemd/user/mscopilotporter.service
+rm -rf ~/.config/mscopilotporter ~/.local/state/mscopilotporter
+```

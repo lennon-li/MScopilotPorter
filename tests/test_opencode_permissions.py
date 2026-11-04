@@ -14,7 +14,7 @@ def test_opencode_dispatch_permissions(monkeypatch, tmp_path, version):
     delta = _fake_info(tmp_path, "delta", "opencode")
     Path(delta["executable"]).write_text(f"#!/bin/sh\nprintf '%s\\n' '{version}'\n")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"delta": delta})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     captured = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kw: captured.append(kw) or "delta-job")
     agent_broker.dispatch_agent("delta", "Write scoped output", "test", model="opencode-go/glm-5.3-flash")
@@ -42,7 +42,7 @@ def test_opencode_unknown_version_cannot_launch(monkeypatch, tmp_path, version):
     delta = _fake_info(tmp_path, "delta", "opencode")
     Path(delta["executable"]).write_text(f"#!/bin/sh\nprintf '%s\\n' '{version}'\n")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"delta": delta})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": True, "allow_execute": True})
     launched = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kw: launched.append(kw))
     with pytest.raises(RuntimeError, match="permission schema"):
@@ -64,7 +64,7 @@ def test_opencode_version_probe_failure_cannot_launch(monkeypatch):
 def test_opencode_readonly_workspace_cannot_launch(monkeypatch, tmp_path):
     delta = _fake_info(tmp_path, "delta", "opencode")
     monkeypatch.setattr(agent_broker, "AGENT_REGISTRY", {"delta": delta})
-    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False})
+    monkeypatch.setattr(agent_broker, "get_workspace", lambda _: {"path": str(tmp_path), "writable": False, "allow_execute": True})
     launched = []
     monkeypatch.setattr(agent_broker.job_manager, "start_raw_job", lambda **kw: launched.append(kw))
     with pytest.raises(ValueError, match="read-only"):

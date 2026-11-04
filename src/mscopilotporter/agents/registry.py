@@ -7,7 +7,7 @@ import subprocess
 from typing import Optional
 
 from mscopilotporter.config import load_config
-from mscopilotporter.tools.workspace import get_workspace
+from mscopilotporter.tools.workspace import get_workspace, require_flag
 from mscopilotporter.runner.jobs import job_manager
 from mscopilotporter.agents.opencode import dispatch_command as opencode_dispatch_command
 
@@ -268,6 +268,7 @@ def dispatch_agent(
         raise RuntimeError(f"Agent profile for '{agent_key}' is incomplete on host")
 
     ws = get_workspace(workspace_id)
+    require_flag(ws, "allow_execute")
     ws_path = ws["path"]
     if worker_cli == "opencode" and not ws["writable"]:
         raise ValueError("OpenCode cannot enforce read-only workspace execution; request rejected.")

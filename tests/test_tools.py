@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import pytest
+from conftest import needs_bwrap
 from mscopilotporter.tools.workspace import get_capabilities, list_workspaces, workspace_info
 from mscopilotporter.tools.files import (
     list_files, search_text, read_file, write_file, apply_patch, mkdir, move_path, trash_path
@@ -31,6 +32,7 @@ def test_capabilities_and_workspace_info():
     assert "R" in info["languages"]
     assert "Python" in info["languages"]
 
+@needs_bwrap
 def test_file_operations():
     files = list_files(WORKSPACE_ID)
     assert "README.md" in files
@@ -60,6 +62,7 @@ def test_file_operations():
     assert t_res["status"] == "trashed"
 
 @needs_r
+@needs_bwrap
 def test_r_execution_and_tests():
     # Calculation 100/pi in R
     r_calc = exec_run(WORKSPACE_ID, ["Rscript", "-e", "cat(100/pi)"])
@@ -71,6 +74,7 @@ def test_r_execution_and_tests():
     assert r_test["exit_code"] != 0
     assert "DEFECT DETECTED" in r_test["stderr"]
 
+@needs_bwrap
 def test_python_execution_and_tests():
     # Calculation in Python
     py_calc = exec_run(WORKSPACE_ID, ["python3", "-c", "import math; print(100/math.pi)"])
@@ -82,6 +86,7 @@ def test_python_execution_and_tests():
     assert py_test["exit_code"] == 0
     assert "OK" in py_test["stderr"]
 
+@needs_bwrap
 def test_bash_sandbox_execution():
     bash_res = exec_run(WORKSPACE_ID, ["bash", "-lc", "echo 'sandbox bash' && whoami"])
     assert bash_res["exit_code"] == 0
@@ -115,6 +120,7 @@ def test_git_operations():
         git_checkout(WORKSPACE_ID, branch="-b")
 
 @needs_r
+@needs_bwrap
 def test_r_plotting_and_artifact():
     # Run plotting script
     plot_run = exec_run(WORKSPACE_ID, ["Rscript", "R/demo_plot.R"])
@@ -129,6 +135,7 @@ def test_r_plotting_and_artifact():
     assert art["mime_type"] == "image/png"
     assert len(art["base64_data"]) > 100
 
+@needs_bwrap
 def test_async_job_lifecycle():
     # Start long-running job inside sandbox (sleep 1 and echo)
     start_res = exec_start(WORKSPACE_ID, ["bash", "-c", "echo 'phase 1' && sleep 1 && echo 'phase 2'"])
@@ -200,3 +207,26 @@ def test_dispatch_agent_telemetry():
 
     # Cancel the started job cleanly
     job_cancel(res["job_id"])
+
+
+def test_exec_and_artifacts_are_denied_unless_workspace_opts_in(tmp_path, monkeypatch):
+    import yaml
+    from mscopilotporter.tools.exec import exec_run, exec_start
+    from mscopilotporter.tools.artifacts import list_artifacts, read_artifact
+    from mscopilotporter.tools.files import write_file
+
+    cfg = tmp_path / "config.yaml"
+    (tmp_path / "locked").mkdir()
+    cfg.write_text(yaml.safe_dump({"workspaces": {"locked": {"path": str(tmp_path / "locked")}}}))
+    monkeypatch.setattr("mscopilotporter.tools.workspace.CONFIG_PATH", str(cfg))
+    with pytest.raises(PermissionError, match="allow_execute"):
+        exec_run("locked", ["true"])
+    with pytest.raises(PermissionError, match="allow_execute"):
+        exec_start("locked", ["true"])
+    with pytest.raises(PermissionError, match="allow_artifacts"):
+        list_artifacts("locked")
+    with pytest.raises(PermissionError, match="allow_artifacts"):
+        read_artifact("locked", "artifacts/x.txt")
+    # workspaces are read-only by default
+    with pytest.raises((PermissionError, ValueError)):
+        write_file("locked", "a.txt", "x")
