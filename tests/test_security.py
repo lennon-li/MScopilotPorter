@@ -1,4 +1,5 @@
 import os
+import shutil
 import pytest
 from conftest import needs_bwrap
 from mscopilotporter.tools.workspace import get_workspace, validate_workspace_path
@@ -63,6 +64,7 @@ def test_sandbox_python_ssh_blocked():
     assert "No such file or directory" in res_open["stderr"]
 
 @needs_bwrap
+@pytest.mark.skipif(shutil.which("Rscript") is None, reason="Rscript not installed")
 def test_sandbox_r_ssh_blocked():
     ws = get_workspace(WORKSPACE_ID)
     res = run_in_sandbox(
@@ -82,12 +84,13 @@ def test_sandbox_mnt_c_blocked():
     assert res_py["exit_code"] == 0
     assert res_py["stdout"].strip() == "False"
 
-    res_r = run_in_sandbox(
-        ws["path"],
-        ["Rscript", "-e", "cat(file.exists('/mnt/c'))"]
-    )
-    assert res_r["exit_code"] == 0
-    assert "FALSE" in res_r["stdout"]
+    if shutil.which("Rscript"):
+        res_r = run_in_sandbox(
+            ws["path"],
+            ["Rscript", "-e", "cat(file.exists('/mnt/c'))"]
+        )
+        assert res_r["exit_code"] == 0
+        assert "FALSE" in res_r["stdout"]
 
 @needs_bwrap
 def test_sandbox_docker_socket_blocked():
