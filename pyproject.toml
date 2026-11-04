@@ -17,6 +17,9 @@ dependencies = [
   "python-multipart==0.0.32",
 ]
 
+[project.scripts]
+mscopilotporter = "mscopilotporter.cli:main"
+
 [project.optional-dependencies]
 dev = ["pytest==9.1.1"]
 

@@ -1,0 +1,30 @@
+# MScopilotPorter configuration. Lives at ~/.config/mscopilotporter/config.yaml
+# (or $MSCP_CONFIG). Secrets (the API key) are kept separately in secrets.env.
+
+server:
+  port: 8000                 # the gateway always binds to 127.0.0.1
+  # Hostnames Copilot Studio reaches you on (your tunnel / reverse-proxy hostname).
+  allowed_hosts: []          # e.g. ["<tunnel-host>"]
+
+# Optional: used by `mscopilotporter tunnel` (Microsoft Dev Tunnels).
+tunnel:
+  name: ""                   # a tunnel you created with `devtunnel create`
+
+# Only workspaces listed here are visible to Copilot.
+workspaces:
+  example:
+    path: ~/projects/example
+    writable: false          # true lets Copilot edit files
+    allow_execute: false     # true allows sandboxed command execution
+    allow_artifacts: false   # true allows listing/reading generated artifacts
+    description: Example project
+
+# Optional: delegated CLI workers. cli is one of: codex, copilot, opencode, claude, agy.
+# With no `agents:` section, one agent per CLI found on PATH is registered.
+agents: {}
+  # reviewer:
+  #   cli: codex
+  #   profile_path: ~/.codex            # CLI profile/home directory
+  #   model: unknown                    # "unknown" = use the account default
+  #   reasoning_effort: unknown
+  #   aliases: [codex]

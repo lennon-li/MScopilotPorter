@@ -159,10 +159,10 @@ def test_async_job_cancel():
 def test_agent_broker_listing():
     agents = list_agents()
     agent_names = [a["agent"] for a in agents]
-    assert "jax" in agent_names
-    assert "liz" in agent_names
-    assert "phil" in agent_names
-    assert "wei" in agent_names
+    assert "alpha" in agent_names
+    assert "beta" in agent_names
+    assert "gamma" in agent_names
+    assert "delta" in agent_names
     assert "claude" in agent_names
     assert "agy" in agent_names
 
@@ -175,9 +175,13 @@ def test_agent_broker_listing():
             assert ag["cli_version"] != "unknown"
         assert ag["actual_model_used"] == "unknown (resolved at runtime per dispatch)"
 
+@pytest.mark.skipif(
+    shutil.which("codex") is None or not os.path.isdir(os.path.expanduser("~/.codex")),
+    reason="codex CLI and profile not installed",
+)
 def test_dispatch_agent_telemetry():
     res = dispatch_agent(
-        agent="codex",
+        agent="alpha",
         task="echo test",
         workspace_id=WORKSPACE_ID,
         purpose="unit test"

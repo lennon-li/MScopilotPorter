@@ -301,12 +301,9 @@ class JobManager:
         cli_version = row["cli_version"] if "cli_version" in row_keys else ""
         exit_code = row["exit_code"]
 
-        worker_cli = {
-            "jax": "codex",
-            "liz": "codex",
-            "phil": "copilot",
-            "wei": "opencode",
-        }.get(row["agent"], row["agent"])
+        from mscopilotporter.agents.registry import AGENT_REGISTRY
+
+        worker_cli = AGENT_REGISTRY.get(row["agent"], {}).get("worker_cli", row["agent"])
         return {
             "job_id": row["job_id"],
             "workspace_id": row["workspace_id"],

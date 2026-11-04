@@ -40,6 +40,13 @@ os.environ.pop("M3_MCP_KEY", None)
     "    allow_execute: true\n"
     "    allow_artifacts: true\n"
     "    description: Fixture workspace\n"
+    "agents:\n"
+    "  alpha: {cli: codex}\n"
+    "  beta: {cli: codex, profile_path: ~/.codex-beta}\n"
+    "  gamma: {cli: copilot}\n"
+    "  delta: {cli: opencode}\n"
+    "  claude: {cli: claude}\n"
+    "  agy: {cli: agy}\n"
 )
 _git = ["git", "-C", str(_ws)]
 subprocess.run(_git + ["init", "-q", "-b", "main"], check=True)

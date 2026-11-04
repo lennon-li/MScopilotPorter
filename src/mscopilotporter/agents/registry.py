@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from typing import Optional
 
+from mscopilotporter.config import load_config
 from mscopilotporter.tools.workspace import get_workspace
 from mscopilotporter.runner.jobs import job_manager
 from mscopilotporter.agents.opencode import dispatch_command as opencode_dispatch_command
@@ -16,123 +17,120 @@ def _profile_path(path: str) -> str:
     return os.path.expanduser(path)
 
 
-AGENT_REGISTRY = {
-    "jax": {
-        "name": "jax",
-        "alias": "Jax",
-        "worker_cli": "codex",
-        "executable": shutil.which("codex") or "codex",
-        "profile_path": _profile_path("~/.codex"),
-        "env_overrides": {"CODEX_HOME": _profile_path("~/.codex")},
-        "config_path": _profile_path("~/.codex/config.toml"),
+# Defaults per supported worker CLI. Users declare concrete agents (name, profile
+# directory, model) under `agents:` in their config file; with no `agents:` section
+# one agent per CLI found on PATH is registered under the CLI's own name.
+CLI_TEMPLATES = {
+    "codex": {
         "provider": "OpenAI",
-        "default_model": "gpt-6-luna",
-        "reasoning_effort": "high",
-        "capabilities": ["code_review", "debugging", "verification", "refactoring"],
-        "description": "Codex (Jax profile) for review, debugging, and bounded patches",
-    },
-    "liz": {
-        "name": "liz",
-        "alias": "Liz",
-        "worker_cli": "codex",
-        "executable": shutil.which("codex") or "codex",
-        "profile_path": _profile_path("~/.codex-liz"),
-        "env_overrides": {"CODEX_HOME": _profile_path("~/.codex-liz")},
-        "config_path": _profile_path("~/.codex-liz/config.toml"),
-        "provider": "OpenAI",
-        "default_model": "gpt-6-luna",
-        "reasoning_effort": "high",
-        "capabilities": ["implementation", "edge_cases", "error_paths", "tests"],
-        "description": "Codex (Liz profile) for implementation, edge cases, error paths, and tests",
-    },
-    "prof": {
-        "name": "prof",
-        "alias": "Prof",
-        "worker_cli": "codex",
-        "executable": shutil.which("codex") or "codex",
-        "profile_path": _profile_path("~/.codex-prof"),
-        "env_overrides": {"CODEX_HOME": _profile_path("~/.codex-prof")},
-        "config_path": _profile_path("~/.codex-prof/config.toml"),
-        "required_profile_files": ("config.toml", "auth.json"),
-        "provider": "OpenAI",
+        "profile_path": "~/.codex",
+        "home_env": "CODEX_HOME",
+        "config_file": "config.toml",
         "default_model": "unknown",
         "reasoning_effort": "unknown",
-        "capabilities": ["research", "implementation", "code_review", "verification"],
-        "description": "Prof: university-research Codex worker with his own account profile",
+        "capabilities": ["implementation", "code_review", "debugging", "verification"],
+        "description": "Codex CLI worker",
     },
-    "phil": {
-        "name": "phil",
-        "alias": "Phil",
-        "worker_cli": "copilot",
-        "executable": shutil.which("copilot")
-        or next(
-            (p for p in map(os.path.expanduser, ("~/.npm-global/bin/copilot", "~/.local/bin/copilot")) if os.path.isfile(p)),
-            "copilot",
-        ),
-        "profile_path": _profile_path("~/.copilot-phil"),
-        "env_overrides": {
-            "COPILOT_HOME": _profile_path("~/.copilot-phil"),
-            "PHIL_COPILOT_HOME": _profile_path("~/.copilot-phil"),
-        },
-        "config_path": _profile_path("~/.copilot-phil/config.json"),
+    "copilot": {
         "provider": "GitHub Copilot",
+        "profile_path": "~/.copilot",
+        "home_env": "COPILOT_HOME",
+        "config_file": "config.json",
         "default_model": "auto",
         "reasoning_effort": "medium",
         "capabilities": ["implementation", "code_review", "github_workflows"],
-        "description": "GitHub Copilot CLI (Phil profile) for implementation and GitHub-native work",
+        "description": "GitHub Copilot CLI worker",
     },
-    "wei": {
-        "name": "wei",
-        "alias": "Wei",
-        "worker_cli": "opencode",
-        "executable": shutil.which("opencode") or "opencode",
-        "profile_path": _profile_path("~/.config/opencode"),
-        "env_overrides": {},
-        "config_path": _profile_path("~/.config/opencode/opencode.json"),
+    "opencode": {
         "provider": "OpenCode",
-        "default_model": "opencode-go/glm-5.3-flash",
+        "profile_path": "~/.config/opencode",
+        "home_env": None,
+        "config_file": "opencode.json",
+        "default_model": "unknown",
         "reasoning_effort": "medium",
         "capabilities": ["fast_implementation", "code_search", "testing"],
-        "description": "OpenCode CLI (Wei profile) for fast implementation and testing",
+        "description": "OpenCode CLI worker",
     },
     "claude": {
-        "name": "claude",
-        "alias": "Claude",
-        "worker_cli": "claude",
-        "executable": shutil.which("claude") or "claude",
-        "env_overrides": {},
-        "config_path": None,
         "provider": "Anthropic",
-        "default_model": "claude-3-7-sonnet",
-        "reasoning_effort": "high",
+        "profile_path": None,
+        "home_env": None,
+        "config_file": None,
+        "default_model": "unknown",
+        "reasoning_effort": "unknown",
         "capabilities": ["deep_reasoning", "architecture", "senior_code_review"],
-        "description": "Anthropic Claude Code CLI for high-consequence reasoning and review",
+        "description": "Claude Code CLI worker",
     },
     "agy": {
-        "name": "agy",
-        "alias": "Argie",
-        "worker_cli": "agy",
-        "executable": shutil.which("agy") or "agy",
-        "env_overrides": {},
-        "config_path": None,
-        "provider": "Google AI Pro",
-        "default_model": "gemini-2.5-pro",
-        "reasoning_effort": "medium",
+        "provider": "Google",
+        "profile_path": None,
+        "home_env": None,
+        "config_file": None,
+        "default_model": "unknown",
+        "reasoning_effort": "unknown",
         "capabilities": ["survey", "synthesis", "audit", "exploration"],
-        "description": "Antigravity CLI for research, synthesis, and audit consulting",
+        "description": "Antigravity CLI worker",
     },
 }
 
-# Public worker identity alongside the backward-compatible runtime identifier.
-AGENT_REGISTRY["argie"] = {
-    **AGENT_REGISTRY["agy"],
-    "name": "argie",
-    "default_model": "unknown",
-    "reasoning_effort": "unknown",
-}
+_CLI_EXECUTABLES = {"codex": "codex", "copilot": "copilot", "opencode": "opencode", "claude": "claude", "agy": "agy"}
 
-AGENT_ALIASES = {"codex": "jax", "opencode": "wei"}
 
+def _executable(cli: str) -> str:
+    found = shutil.which(_CLI_EXECUTABLES[cli])
+    if found:
+        return found
+    for candidate in ("~/.npm-global/bin/", "~/.local/bin/"):
+        path = os.path.expanduser(candidate + _CLI_EXECUTABLES[cli])
+        if os.path.isfile(path):
+            return path
+    return _CLI_EXECUTABLES[cli]
+
+
+def _build_entry(name: str, spec: dict) -> dict:
+    cli = spec.get("cli")
+    if cli not in CLI_TEMPLATES:
+        raise ValueError(f"Agent '{name}': 'cli' must be one of {sorted(CLI_TEMPLATES)}")
+    tpl = CLI_TEMPLATES[cli]
+    profile = spec.get("profile_path", tpl["profile_path"])
+    profile = _profile_path(profile) if profile else None
+    env = {tpl["home_env"]: profile} if tpl["home_env"] and profile else {}
+    config_file = os.path.join(profile, tpl["config_file"]) if profile and tpl["config_file"] else None
+    executable = spec.get("executable")
+    return {
+        "name": name,
+        "alias": spec.get("alias", name),
+        "worker_cli": cli,
+        "executable": _profile_path(executable) if executable else _executable(cli),
+        **({"profile_path": profile} if profile else {}),
+        "env_overrides": env,
+        "config_path": config_file,
+        **({"required_profile_files": tuple(spec["required_profile_files"])} if spec.get("required_profile_files") else {}),
+        "provider": tpl["provider"],
+        "default_model": spec.get("model", tpl["default_model"]),
+        "reasoning_effort": spec.get("reasoning_effort", tpl["reasoning_effort"]),
+        "capabilities": list(spec.get("capabilities", tpl["capabilities"])),
+        "description": spec.get("description", tpl["description"]),
+    }
+
+
+def build_registry(agents_config=None) -> tuple[dict, dict]:
+    """Return (registry, aliases) from the `agents:` config section."""
+    registry, aliases = {}, {}
+    if agents_config:
+        for name, spec in agents_config.items():
+            key = str(name).lower().strip()
+            registry[key] = _build_entry(key, spec or {})
+            for alias in (spec or {}).get("aliases", []):
+                aliases[str(alias).lower().strip()] = key
+    else:
+        for cli in CLI_TEMPLATES:
+            if shutil.which(_CLI_EXECUTABLES[cli]):
+                registry[cli] = _build_entry(cli, {"cli": cli})
+    return registry, aliases
+
+
+AGENT_REGISTRY, AGENT_ALIASES = build_registry(load_config().get("agents"))
 
 def _read_config(agent_info: dict) -> dict:
     """Read only non-secret model settings; malformed or absent files use defaults."""
@@ -249,7 +247,7 @@ def dispatch_agent(
     agent_info = AGENT_REGISTRY[agent_key]
     worker_cli = agent_info["worker_cli"]
     if worker_cli == "agy" and reasoning_effort and reasoning_effort not in {"low", "medium", "high", "xhigh", "max"}:
-        raise ValueError("Unsupported Argie reasoning effort")
+        raise ValueError("Unsupported agy reasoning effort")
     if network_access and worker_cli != "codex":
         raise ValueError(
             f"Network access is not supported for {worker_cli} workers; request rejected."
@@ -327,9 +325,11 @@ def dispatch_agent(
     elif worker_cli == "copilot":
         # Keep the permission explicit and workspace-bound; read-only dispatches
         # receive only common read-only Git inspection commands.
-        cmd = [exe, "-p", packet, "--model", effective_model]
+        cmd = [exe, "-p", packet]
+        if effective_model not in ("", "unknown"):
+            cmd.extend(["--model", effective_model])
         # Copilot rejects a reasoning effort for its "auto" model router.
-        if effective_model != "auto":
+        if effective_model not in ("", "unknown", "auto") and effective_effort not in ("", "unknown"):
             cmd.extend(["--reasoning-effort", effective_effort])
         if ws["writable"]:
             # The CLI's default path verifier restricts writes to its working
@@ -357,7 +357,7 @@ def dispatch_agent(
     if worker_cli == "opencode":
         proc_env["OPENCODE_CONFIG_CONTENT"] = opencode_profile
     if worker_cli == "copilot":
-        # Use Phil's saved profile auth and the explicit tool grants above.
+        # Use the agent's saved profile auth and the explicit tool grants above.
         for name in (
             "COPILOT_ALLOW_ALL", "COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN",
             "COPILOT_REAL_BIN",

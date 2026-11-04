@@ -74,7 +74,13 @@ MScopilotPorter/
 4. Convert the original `m3` repo into a thin private deployment wrapper that pins a
    `mscopilotporter` version and keeps only its own config, units and runbooks.
 
-## Open decisions
+## Status (v0.1.0)
+
+Phases 1-3 are implemented. Phase 4: the history-free tree is published; PyPI publishing and
+converting the private deployment repo into a thin wrapper are left to the maintainer.
+Decisions taken: workers included, configured under `agents:`; MIT license; single API key.
+
+## Open decisions (resolved above)
 
 - Keep the Codex/OpenCode/Agy/Claude/Copilot CLI workers in v0.1, or ship exec/files/git only and make workers an optional plugin?
 - License (MIT vs Apache-2.0).

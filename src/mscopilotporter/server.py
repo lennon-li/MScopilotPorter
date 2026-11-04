@@ -302,7 +302,7 @@ def read_artifact(workspace_id: str, path: str) -> dict:
 @mcp.tool()
 @monitored_tool("list_agents")
 def list_agents() -> list[dict]:
-    """List available agent identities (Jax, Liz, Phil, Wei, Claude, Agy)."""
+    """List configured worker agents and their availability."""
     return _list_agents()
 
 @mcp.tool()
@@ -337,7 +337,12 @@ def create_app() -> ASGIApp:
     )
     return AuthAndSecurityMiddleware(streamable_app)
 
-if __name__ == "__main__":
-    port = int(os.environ.get("MSCP_PORT") or os.environ.get("GATEWAY_PORT", "8000"))
+def run(port: int | None = None) -> None:
+    """Serve on loopback only; expose it with a tunnel or reverse proxy you manage."""
+    port = port or int(os.environ.get("MSCP_PORT") or os.environ.get("GATEWAY_PORT", "8000"))
     logger.info("Starting MScopilotPorter on 127.0.0.1:%d", port)
     uvicorn.run(create_app(), host="127.0.0.1", port=port)
+
+
+if __name__ == "__main__":
+    run()

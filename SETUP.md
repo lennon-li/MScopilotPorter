@@ -2,9 +2,6 @@
 
 Connect a Microsoft 365 Copilot Studio agent to a local machine through an MCP endpoint.
 
-> Status: this guide describes the target `mscopilotporter` CLI from `PLAN.md`. Commands
-> marked (planned) do not exist until Phase 2 is done.
-
 ## What you need
 
 - Linux or WSL2 (Ubuntu 22.04+), Python 3.11+
@@ -19,10 +16,10 @@ Connect a Microsoft 365 Copilot Studio agent to a local machine through an MCP e
 git clone https://github.com/lennon-li/MScopilotPorter.git
 cd MScopilotPorter
 python3 -m venv .venv
-.venv/bin/pip install -e .          # planned: pip install mscopilotporter
+.venv/bin/pip install -e .       
 ```
 
-## 2. Initialise (planned)
+## 2. Initialise
 
 ```bash
 .venv/bin/mscopilotporter init
@@ -46,7 +43,7 @@ workspaces:
     allow_execute: false     # set true to allow sandboxed commands
 ```
 
-## 4. Check the machine (planned)
+## 4. Check the machine
 
 ```bash
 .venv/bin/mscopilotporter doctor
@@ -63,12 +60,12 @@ Fix anything it reports (missing bubblewrap, wrong key-file mode, invalid config
 In a second terminal:
 
 ```bash
-KEY=$(grep -E '^MSCP_KEY=' ~/.config/mscopilotporter/secrets.env | cut -d= -f2-)
+KEY=$(.venv/bin/mscopilotporter key show)
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8000/health                      # 401
 curl -s -o /dev/null -w "%{http_code}\n" -H "X-MSCP-Key: $KEY" http://127.0.0.1:8000/health  # 200
 ```
 
-Run it as a service so it survives logout (planned):
+Run it as a service so it survives logout:
 
 ```bash
 .venv/bin/mscopilotporter service install
@@ -84,7 +81,7 @@ Copilot Studio needs a public HTTPS URL. With Dev Tunnels:
 devtunnel user login -d -g              # or -d -e for Microsoft Entra ID
 devtunnel create <tunnel-name> --allow-anonymous
 devtunnel port create <tunnel-name> -p 8000
-devtunnel host <tunnel-name>            # prints https://<id>-8000.<region>.devtunnels.ms
+devtunnel host <tunnel-name>            # or: mscopilotporter tunnel (set tunnel.name in the config); prints https://<id>-8000.<region>.devtunnels.ms
 ```
 
 Add that hostname to `server.allowed_hosts` and restart the gateway. The tunnel carries
@@ -114,7 +111,7 @@ authorise the connection under Channels, then Microsoft 365 Copilot, then User c
 | Task | Command |
 |---|---|
 | Rotate the key | `mscopilotporter key rotate`, then update the Copilot connection |
-| View the key | `grep MSCP_KEY ~/.config/mscopilotporter/secrets.env` |
+| View the key | `mscopilotporter key show` |
 | Logs | `journalctl --user -u mscopilotporter -f` |
 | Health | `mscopilotporter doctor` |
 

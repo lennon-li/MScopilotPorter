@@ -9,8 +9,8 @@ execution, and delegated CLI-agent workers.
 - Commands run in a bubblewrap sandbox, offline by default.
 - Only workspaces you list in your config are visible.
 
-See [SETUP.md](SETUP.md) to install and connect Copilot Studio, and [PLAN.md](PLAN.md)
-for the packaging roadmap. Status: pre-release, Phase 1 of the plan.
+See [SETUP.md](SETUP.md) to install and connect Copilot Studio, [SECURITY.md](SECURITY.md)
+for the threat model, and [PLAN.md](PLAN.md) for the packaging plan. Status: v0.1.0.
 
 ## Development
 
@@ -20,4 +20,5 @@ python3 -m venv .venv
 .venv/bin/pytest
 ```
 
+`python scripts/leak_check.py` fails if tracked files contain home paths, tunnel IDs or secrets.
 Tests are hermetic: they create a temporary config, state directory and fixture workspace.
