@@ -108,5 +108,5 @@ Sandbox tests are skipped automatically where bubblewrap cannot create sandboxes
 
 ## Project status and license
 
-Version 0.1.0. See [PLAN.md](PLAN.md) for how the package was derived and what is next.
+Version 0.1.2. See [PLAN.md](PLAN.md) for how the package was derived and what is next.
 Released under the [MIT License](LICENSE).
